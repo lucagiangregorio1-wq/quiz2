@@ -1,0 +1,766 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Quiz Meta Ads — Luca Giangregorio</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0d0d0d;
+    --surface: #161616;
+    --surface2: #1e1e1e;
+    --border: rgba(255,255,255,0.08);
+    --flame: #E8593C;
+    --flame-muted: rgba(232,89,60,0.15);
+    --text: #f0ede8;
+    --text-muted: rgba(240,237,232,0.45);
+    --text-mid: rgba(240,237,232,0.7);
+    --green: #4CAF7D;
+    --amber: #F0A500;
+    --radius: 12px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 2rem 1rem 4rem;
+    position: relative;
+    overflow-x: hidden;
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    top: -200px; right: -200px;
+    width: 500px; height: 500px;
+    background: radial-gradient(circle, rgba(232,89,60,0.12) 0%, transparent 70%);
+    pointer-events: none;
+  }
+
+  .container {
+    width: 100%;
+    max-width: 620px;
+  }
+
+  /* HEADER */
+  .header {
+    text-align: center;
+    padding: 2rem 0 2.5rem;
+  }
+  .header-tag {
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: var(--flame);
+    margin-bottom: .75rem;
+  }
+  .header h1 {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(48px, 10vw, 72px);
+    line-height: .95;
+    letter-spacing: .02em;
+    color: var(--text);
+    margin-bottom: 1rem;
+  }
+  .header h1 span { color: var(--flame); }
+  .header p {
+    font-size: 15px;
+    color: var(--text-mid);
+    line-height: 1.6;
+    max-width: 460px;
+    margin: 0 auto 1.5rem;
+  }
+  .header-meta {
+    display: flex;
+    gap: 1.5rem;
+    justify-content: center;
+    font-size: 12px;
+    color: var(--text-muted);
+  }
+  .header-meta span { display: flex; align-items: center; gap: 5px; }
+  .dot-flame { width: 6px; height: 6px; border-radius: 50%; background: var(--flame); display: inline-block; }
+
+  /* PROGRESS */
+  .progress-wrap {
+    margin-bottom: 2rem;
+  }
+  .progress-labels {
+    display: flex;
+    justify-content: space-between;
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-bottom: .5rem;
+  }
+  .progress-bar {
+    height: 3px;
+    background: var(--surface2);
+    border-radius: 3px;
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%;
+    background: var(--flame);
+    border-radius: 3px;
+    transition: width .4s cubic-bezier(.4,0,.2,1);
+  }
+
+  /* CARD */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 2rem;
+    opacity: 0;
+    transform: translateY(16px);
+    transition: opacity .35s ease, transform .35s ease;
+  }
+  .card.visible { opacity: 1; transform: translateY(0); }
+
+  .q-number {
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--flame);
+    margin-bottom: .75rem;
+  }
+  .q-text {
+    font-size: clamp(18px, 4vw, 22px);
+    font-weight: 500;
+    line-height: 1.35;
+    color: var(--text);
+    margin-bottom: 1.5rem;
+  }
+
+  /* OPTIONS */
+  .options { display: flex; flex-direction: column; gap: .6rem; }
+  .option {
+    display: flex;
+    align-items: flex-start;
+    gap: .85rem;
+    padding: .9rem 1.1rem;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    cursor: pointer;
+    transition: border-color .2s, background .2s, transform .15s;
+    text-align: left;
+  }
+  .option:hover {
+    border-color: rgba(232,89,60,0.4);
+    background: rgba(232,89,60,0.06);
+    transform: translateX(3px);
+  }
+  .option.selected {
+    border-color: var(--flame);
+    background: var(--flame-muted);
+  }
+  .option-letter {
+    min-width: 26px;
+    height: 26px;
+    border-radius: 6px;
+    background: var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text-muted);
+    transition: background .2s, color .2s;
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+  .option.selected .option-letter {
+    background: var(--flame);
+    color: #fff;
+  }
+  .option-text {
+    font-size: 14px;
+    line-height: 1.45;
+    color: var(--text-mid);
+  }
+  .option.selected .option-text { color: var(--text); }
+
+  /* NAV */
+  .nav {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 1.5rem;
+    gap: 1rem;
+  }
+  .btn-back {
+    font-size: 13px;
+    color: var(--text-muted);
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: .5rem 0;
+    transition: color .2s;
+  }
+  .btn-back:hover { color: var(--text); }
+  .btn-next {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    font-weight: 500;
+    color: #fff;
+    background: var(--flame);
+    border: none;
+    border-radius: var(--radius);
+    padding: .75rem 1.75rem;
+    cursor: pointer;
+    transition: opacity .2s, transform .15s;
+    margin-left: auto;
+  }
+  .btn-next:hover { opacity: .88; transform: translateY(-1px); }
+  .btn-next:disabled { opacity: .3; cursor: not-allowed; transform: none; }
+
+  /* RESULT */
+  .result { display: none; }
+  .result.visible { display: block; }
+
+  .result-header {
+    text-align: center;
+    padding: 1.5rem 0 2rem;
+  }
+  .result-tag {
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    margin-bottom: .75rem;
+  }
+  .result-tag.low { color: var(--amber); }
+  .result-tag.mid { color: #5DCAA5; }
+  .result-tag.high { color: var(--green); }
+
+  .result-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(36px, 8vw, 56px);
+    line-height: 1;
+    letter-spacing: .02em;
+    margin-bottom: 1rem;
+  }
+
+  .score-ring {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    border: 2px solid var(--border);
+    margin: 0 auto 1rem;
+    flex-direction: column;
+  }
+  .score-ring.low { border-color: var(--amber); }
+  .score-ring.mid { border-color: #5DCAA5; }
+  .score-ring.high { border-color: var(--green); }
+  .score-num {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 28px;
+    line-height: 1;
+  }
+  .score-ring.low .score-num { color: var(--amber); }
+  .score-ring.mid .score-num { color: #5DCAA5; }
+  .score-ring.high .score-num { color: var(--green); }
+  .score-label { font-size: 10px; color: var(--text-muted); margin-top: 2px; }
+
+  .result-block {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 1.5rem;
+    margin-bottom: 1rem;
+  }
+  .result-block-label {
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: .6rem;
+  }
+  .result-block p {
+    font-size: 15px;
+    line-height: 1.65;
+    color: var(--text-mid);
+  }
+  .result-block p strong { color: var(--text); font-weight: 500; }
+
+  .gaps-list {
+    list-style: none;
+    margin-top: .5rem;
+  }
+  .gaps-list li {
+    font-size: 14px;
+    color: var(--text-mid);
+    padding: .4rem 0;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    gap: .6rem;
+    align-items: flex-start;
+  }
+  .gaps-list li:last-child { border-bottom: none; }
+  .gaps-list li::before { content: '→'; color: var(--flame); flex-shrink: 0; }
+
+  .cta-block {
+    background: var(--flame-muted);
+    border: 1px solid rgba(232,89,60,0.3);
+    border-radius: 16px;
+    padding: 1.75rem;
+    text-align: center;
+    margin-top: 1.5rem;
+  }
+  .cta-block h3 {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 28px;
+    letter-spacing: .03em;
+    color: var(--text);
+    margin-bottom: .5rem;
+  }
+  .cta-block p {
+    font-size: 14px;
+    color: var(--text-mid);
+    line-height: 1.6;
+    margin-bottom: 1.25rem;
+  }
+  .btn-cta {
+    display: inline-block;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 15px;
+    font-weight: 500;
+    color: #fff;
+    background: var(--flame);
+    border: none;
+    border-radius: var(--radius);
+    padding: .9rem 2rem;
+    cursor: pointer;
+    text-decoration: none;
+    transition: opacity .2s, transform .15s;
+    width: 100%;
+  }
+  .btn-cta:hover { opacity: .88; transform: translateY(-2px); }
+
+  .cta-note {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-top: .75rem;
+  }
+
+  .footer-brand {
+    text-align: center;
+    margin-top: 3rem;
+    font-size: 12px;
+    color: var(--text-muted);
+    letter-spacing: .05em;
+  }
+  .footer-brand span { color: var(--flame); }
+
+  /* START */
+  .start-btn {
+    display: block;
+    width: 100%;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 16px;
+    font-weight: 500;
+    color: #fff;
+    background: var(--flame);
+    border: none;
+    border-radius: var(--radius);
+    padding: 1rem;
+    cursor: pointer;
+    text-align: center;
+    transition: opacity .2s, transform .15s;
+    margin-top: 1.5rem;
+  }
+  .start-btn:hover { opacity: .88; transform: translateY(-2px); }
+
+  #quiz-section { display: none; }
+  #result-section { display: none; }
+</style>
+</head>
+<body>
+
+<div class="container">
+
+  <!-- INTRO -->
+  <div id="intro-section">
+    <div class="header">
+      <div class="header-tag">Luca Giangregorio · Marketing</div>
+      <h1>Sei pronto per<br>le <span>Meta Ads?</span></h1>
+      <p>7 domande per capire dove sei, quali sono i tuoi gap reali, e cosa ha senso fare prima nel tuo caso specifico.</p>
+      <div class="header-meta">
+        <span><span class="dot-flame"></span> 7 domande</span>
+        <span><span class="dot-flame"></span> ~2 minuti</span>
+        <span><span class="dot-flame"></span> Risultato personalizzato</span>
+      </div>
+    </div>
+    <button class="start-btn" onclick="startQuiz()">Inizia il quiz →</button>
+  </div>
+
+  <!-- QUIZ -->
+  <div id="quiz-section">
+    <div class="progress-wrap">
+      <div class="progress-labels">
+        <span id="q-counter">Domanda 1 di 7</span>
+        <span id="q-pct">0%</span>
+      </div>
+      <div class="progress-bar">
+        <div class="progress-fill" id="progress-fill" style="width:0%"></div>
+      </div>
+    </div>
+
+    <div class="card" id="question-card">
+      <div class="q-number" id="q-num">01 / 07</div>
+      <div class="q-text" id="q-text"></div>
+      <div class="options" id="options-list"></div>
+      <div class="nav">
+        <button class="btn-back" id="btn-back" onclick="prevQ()">← Indietro</button>
+        <button class="btn-next" id="btn-next" onclick="nextQ()" disabled>Continua</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- RESULT -->
+  <div id="result-section">
+    <div class="result-header">
+      <div id="res-tag" class="result-tag"></div>
+      <div style="display:flex;justify-content:center;margin-bottom:1rem">
+        <div class="score-ring" id="score-ring">
+          <span class="score-num" id="score-num"></span>
+          <span class="score-label">/ 21</span>
+        </div>
+      </div>
+      <div class="result-title" id="res-title"></div>
+    </div>
+
+    <div class="result-block">
+      <div class="result-block-label">La tua situazione</div>
+      <p id="res-situation"></p>
+    </div>
+
+    <div class="result-block">
+      <div class="result-block-label">I tuoi gap principali</div>
+      <ul class="gaps-list" id="res-gaps"></ul>
+    </div>
+
+    <div class="result-block">
+      <div class="result-block-label">Cosa fare adesso</div>
+      <p id="res-action"></p>
+    </div>
+
+    <div class="cta-block">
+      <h3>Parliamoci.</h3>
+      <p>Prenota la consulenza gratuita. Prendo in mano i tuoi risultati, vediamo insieme dove sei e costruiamo un primo piano d'azione reale — senza template, senza strategie copia-incolla.</p>
+      <a class="btn-cta" href="[INSERISCI LINK CONSULENZA QUI]" target="_blank">Prenota la consulenza gratuita →</a>
+      <div class="cta-note">Solo per chi ha completato il quiz. Zero trick, zero funnel infinito.</div>
+    </div>
+  </div>
+
+  <div class="footer-brand">Your Flame, <span>Your Game</span> — Luca Giangregorio</div>
+
+</div>
+
+<script>
+const questions = [
+  {
+    text: "Che tipo di attività hai?",
+    options: [
+      { text: "Professionista o freelance (coach, consulente, avvocato, formatore...)", type: "pro", score: 0 },
+      { text: "Local business (ristorante, centro estetico, palestra, negozio...)", type: "local", score: 0 },
+      { text: "Agenzia o B2B — offro servizi ad altre aziende", type: "agency", score: 0 }
+    ]
+  },
+  {
+    text: "Hai mai usato la pubblicità a pagamento online?",
+    options: [
+      { text: "Mai — parto da zero", score: 0 },
+      { text: "Ho provato una volta ma senza risultati concreti", score: 1 },
+      { text: "Sì, ho fatto campagne ma non in modo sistematico", score: 2 },
+      { text: "Sì, ho già un sistema che gira", score: 3 }
+    ]
+  },
+  {
+    text: "Qual è il tuo obiettivo principale con le Meta Ads?",
+    options: [
+      { text: "Far sapere che esisto — voglio notorietà", score: 1 },
+      { text: "Portare persone a contattarmi o prenotare", score: 2 },
+      { text: "Generare vendite o ordini diretti", score: 2 },
+      { text: "Scalare un sistema che già funziona", score: 3 }
+    ]
+  },
+  {
+    text: "Hai un budget mensile da dedicare alle Ads?",
+    options: [
+      { text: "Non ancora — devo ancora capire quanto investire", score: 0 },
+      { text: "Sì, meno di €300 al mese", score: 1 },
+      { text: "Sì, tra €300 e €1.000 al mese", score: 2 },
+      { text: "Sì, più di €1.000 al mese", score: 3 }
+    ]
+  },
+  {
+    text: "Hai una destinazione dove mandare il traffico? (sito, landing page, profilo curato)",
+    options: [
+      { text: "No, non ho nulla di strutturato", score: 0 },
+      { text: "Ho un profilo social ma niente di ottimizzato", score: 1 },
+      { text: "Ho una pagina ma non so se converte bene", score: 2 },
+      { text: "Sì, ho una landing o un sito che converte", score: 3 }
+    ]
+  },
+  {
+    text: "Qual è la tua sfida più grande in questo momento?",
+    options: [
+      { text: "Non so da dove iniziare — tutto sembra complicato", score: 0 },
+      { text: "Ho paura di sprecare soldi senza vedere risultati", score: 1 },
+      { text: "Non ho tempo per gestirle e monitorarle", score: 2 },
+      { text: "Non riesco a scalare quello che già funziona", score: 3 }
+    ]
+  },
+  {
+    text: "Quanto sei disposto a investire tempo per capire le Ads?",
+    options: [
+      { text: "Preferisco delegare tutto — voglio solo i risultati", score: 0 },
+      { text: "Qualche ora al mese per capire i report", score: 1 },
+      { text: "Alcune ore a settimana per gestirle in parte da solo", score: 2 },
+      { text: "Sono pronto a diventare operativo e imparare sul campo", score: 3 }
+    ]
+  }
+];
+
+const results = {
+  pro: {
+    low: {
+      tag: "Fase 0 — Basi da costruire",
+      level: "low",
+      title: "Prima le fondamenta.",
+      situation: "Il tuo business ha del potenziale, ma in questo momento <strong>le Ads da sole non bastano</strong>. Un annuncio porta traffico — ma se l'offerta non è chiara o la destinazione non converte, stai solo pagando per portare persone in un posto che non funziona.",
+      gaps: [
+        "Definire un'offerta specifica e comprensibile in 10 secondi",
+        "Creare una landing page o una pagina di prenotazione ottimizzata",
+        "Chiarire il posizionamento: perché tu e non un altro?"
+      ],
+      action: "Dedica le prossime 4 settimane a costruire la base: <strong>offerta chiara, landing funzionante, CTA precisa</strong>. Le Ads vengono dopo — e quando arrivano, funzionano molto meglio perché hanno qualcosa di solido su cui lavorare."
+    },
+    mid: {
+      tag: "Fase 1 — Pronto per iniziare",
+      level: "mid",
+      title: "È il momento giusto.",
+      situation: "Hai le basi per iniziare un primo test reale. Non sei ancora al punto di scalare, ma hai abbastanza consapevolezza e struttura per lanciare una campagna senza bruciarti il budget subito.",
+      gaps: [
+        "Definire il pubblico freddo giusto per il tuo servizio",
+        "Creare una creatività con un angolo chiaro (non generica)",
+        "Impostare il pixel Meta per tracciare le prenotazioni"
+      ],
+      action: "Inizia con <strong>Obiettivo Contatti</strong>, budget test tra €300 e €500 il primo mese, una sola creatività per volta. Dopo 10 giorni leggi i dati — CTR, CPM, costo per lead — e decidi se ottimizzare o cambiare angolo."
+    },
+    high: {
+      tag: "Fase 2 — Pronto per strutturare",
+      level: "high",
+      title: "Hai le basi. Ora si scala.",
+      situation: "Sei in una posizione solida: hai esperienza, budget e chiarezza sull'obiettivo. Il passo successivo non è 'iniziare' — è <strong>costruire un sistema che si ottimizza nel tempo</strong> invece di campagne spot.",
+      gaps: [
+        "Costruire un funnel Ads → landing → prenotazione con retargeting",
+        "Diversificare creatività e testare angoli diversi in parallelo",
+        "Integrare Advantage+ per lasciare che l'algoritmo lavori a pieno regime"
+      ],
+      action: "Il focus adesso è il sistema: non solo l'ads che funziona, ma il <strong>ciclo di test, ottimizzazione e scala</strong>. Definiamo insieme il tuo costo per acquisizione target e costruiamo da lì."
+    }
+  },
+  local: {
+    low: {
+      tag: "Fase 0 — Basi da costruire",
+      level: "low",
+      title: "Prima ottimizza, poi amplifica.",
+      situation: "Le Ads amplificano quello che già funziona — se c'è qualcosa da amplificare. In questo momento <strong>il lavoro più importante non è la pubblicità</strong>, ma la struttura che riceve il traffico che porteresti.",
+      gaps: [
+        "Ottimizzare il profilo Google Business (recensioni, foto, orari)",
+        "Creare un'offerta specifica da promuovere (non 'vieni da noi' — 'prova X per Y')",
+        "Avere un modo per raccogliere i contatti di chi risponde all'ads"
+      ],
+      action: "Prima di spendere su Ads, investi <strong>due settimane su Google Business e su un'offerta di ingresso chiara</strong>. Poi le Ads locali hanno senso — e costano molto meno per risultato."
+    },
+    mid: {
+      tag: "Fase 1 — Pronto per iniziare",
+      level: "mid",
+      title: "Il territorio ti aspetta.",
+      situation: "Sei pronto per portare traffico locale qualificato. Con il targeting geografico di Meta puoi raggiungere esattamente le persone nel tuo raggio d'azione che corrispondono al tuo cliente tipo.",
+      gaps: [
+        "Definire un pubblico geografico preciso (raggio km, età, interessi)",
+        "Creare un'offerta a tempo o un coupon di ingresso per misurare i risultati",
+        "Tracciare quante persone dall'ads diventano clienti fisici"
+      ],
+      action: "Inizia con <strong>Obiettivo Traffico o Contatti</strong>, budget €300/mese, raggio geografico specifico. Crea un'offerta misurabile (es. 'mostra questo annuncio in cassa per avere X'). Dopo 3 settimane hai dati reali."
+    },
+    high: {
+      tag: "Fase 2 — Pronto per strutturare",
+      level: "high",
+      title: "Dal locale al sistematico.",
+      situation: "Hai esperienza e struttura. Ora il gioco è <strong>automatizzare l'acquisizione locale</strong> invece di fare campagne manuali ogni volta che vuoi riempire il locale o generare prenotazioni.",
+      gaps: [
+        "Creare un sistema di retargeting su chi ha visitato il sito o la pagina IG",
+        "Sfruttare le campagne stagionali in anticipo con budget pianificato",
+        "Costruire un pubblico lookalike dai tuoi clienti migliori"
+      ],
+      action: "Il passo successivo è la <strong>pianificazione trimestrale</strong>: campagne sempre attive a basso budget + campagne stagionali spinte. Definiamo insieme il calendario e il budget ottimale per il tuo tipo di business."
+    }
+  },
+  agency: {
+    low: {
+      tag: "Fase 0 — Strategia prima",
+      level: "low",
+      title: "In B2B serve un funnel.",
+      situation: "In B2B il ciclo di vendita è lungo e complesso. Le Ads su Meta non chiudono deal da sole — ma <strong>possono generare lead qualificati se c'è un funnel corretto dietro</strong>. Senza funnel, stai pagando per click che non portano da nessuna parte.",
+      gaps: [
+        "Definire il profilo del cliente ideale (ICP) con precisione chirurgica",
+        "Creare un lead magnet di valore reale (non 'scarica la brochure')",
+        "Costruire una sequenza di follow-up per i lead che arrivano"
+      ],
+      action: "Prima di qualsiasi ads: <strong>definisci l'ICP, crea il lead magnet, metti in piedi il follow-up</strong>. La pubblicità viene dopo — come acceleratore di un sistema già funzionante, non come sostituto."
+    },
+    mid: {
+      tag: "Fase 1 — Lead generation strutturata",
+      level: "mid",
+      title: "Il lead magnet è la chiave.",
+      situation: "Hai le basi per iniziare a testare lead generation su Meta. In B2B il contenuto educativo e i lead magnet di valore funzionano molto meglio delle promozioni dirette — e Meta ti permette di targetizzare per settore, ruolo e comportamento.",
+      gaps: [
+        "Creare contenuti educativi specifici per il tuo ICP (case study, guide, framework)",
+        "Impostare un Lead Ad nativo Meta per abbassare il costo per lead",
+        "Costruire un retargeting su chi ha interagito con i tuoi contenuti"
+      ],
+      action: "Inizia con <strong>Obiettivo Contatti + Lead Ad nativo Meta</strong> con un contenuto di valore come hook. Budget test: €500/mese. Monitora il costo per lead e la qualità dei lead, non solo il volume."
+    },
+    high: {
+      tag: "Fase 2 — Sistema di acquisizione",
+      level: "high",
+      title: "Scala il sistema.",
+      situation: "Hai dati, esperienza e chiarezza. Ora il lavoro è trasformare le campagne spot in un <strong>sistema di acquisizione B2B prevedibile</strong> — con un costo per lead target e un funnel che qualifica automaticamente.",
+      gaps: [
+        "Integrare il CRM con il pixel Meta per ottimizzare sui lead qualificati, non su tutti",
+        "Costruire funnel per fase del buyer journey (awareness → consideration → decision)",
+        "Testare campagne Advantage+ per la parte alta del funnel"
+      ],
+      action: "Il focus è il <strong>CPL target e la qualificazione automatica</strong>: non tutti i lead valgono lo stesso. Definiamo il tuo costo per opportunity accettabile e costruiamo il sistema attorno a quel numero."
+    }
+  }
+};
+
+let current = 0;
+let answers = [];
+let businessType = null;
+let totalScore = 0;
+
+function startQuiz() {
+  document.getElementById('intro-section').style.display = 'none';
+  document.getElementById('quiz-section').style.display = 'block';
+  renderQuestion();
+}
+
+function renderQuestion() {
+  const card = document.getElementById('question-card');
+  card.classList.remove('visible');
+
+  setTimeout(() => {
+    const q = questions[current];
+    const letters = ['A','B','C','D'];
+    document.getElementById('q-num').textContent = String(current+1).padStart(2,'0') + ' / 07';
+    document.getElementById('q-counter').textContent = 'Domanda ' + (current+1) + ' di 7';
+    document.getElementById('q-pct').textContent = Math.round((current/7)*100) + '%';
+    document.getElementById('progress-fill').style.width = ((current/7)*100) + '%';
+    document.getElementById('q-text').textContent = q.text;
+
+    const list = document.getElementById('options-list');
+    list.innerHTML = '';
+    q.options.forEach((opt, i) => {
+      const div = document.createElement('div');
+      div.className = 'option' + (answers[current] === i ? ' selected' : '');
+      div.innerHTML = `<span class="option-letter">${letters[i]}</span><span class="option-text">${opt.text}</span>`;
+      div.onclick = () => selectOption(i);
+      list.appendChild(div);
+    });
+
+    document.getElementById('btn-back').style.visibility = current === 0 ? 'hidden' : 'visible';
+    document.getElementById('btn-next').textContent = current === 6 ? 'Vedi il tuo risultato →' : 'Continua';
+    document.getElementById('btn-next').disabled = answers[current] === undefined;
+
+    card.classList.add('visible');
+  }, 150);
+}
+
+function selectOption(i) {
+  answers[current] = i;
+  document.querySelectorAll('.option').forEach((el, idx) => {
+    el.classList.toggle('selected', idx === i);
+  });
+  document.getElementById('btn-next').disabled = false;
+}
+
+function nextQ() {
+  if (answers[current] === undefined) return;
+  if (current < 6) {
+    current++;
+    renderQuestion();
+  } else {
+    showResult();
+  }
+}
+
+function prevQ() {
+  if (current > 0) {
+    current--;
+    renderQuestion();
+  }
+}
+
+function showResult() {
+  // Calculate
+  totalScore = 0;
+  businessType = null;
+  answers.forEach((ansIdx, qIdx) => {
+    const opt = questions[qIdx].options[ansIdx];
+    if (opt.type) businessType = opt.type;
+    totalScore += opt.score || 0;
+  });
+
+  let level;
+  if (totalScore <= 6) level = 'low';
+  else if (totalScore <= 13) level = 'mid';
+  else level = 'high';
+
+  if (!businessType) businessType = 'pro';
+  const r = results[businessType][level];
+
+  document.getElementById('quiz-section').style.display = 'none';
+  const rs = document.getElementById('result-section');
+  rs.style.display = 'block';
+
+  const tagEl = document.getElementById('res-tag');
+  tagEl.textContent = r.tag;
+  tagEl.className = 'result-tag ' + r.level;
+
+  const ring = document.getElementById('score-ring');
+  ring.className = 'score-ring ' + r.level;
+  document.getElementById('score-num').textContent = totalScore;
+  document.getElementById('score-num').style.color = r.level === 'low' ? 'var(--amber)' : r.level === 'mid' ? '#5DCAA5' : 'var(--green)';
+
+  document.getElementById('res-title').textContent = r.title;
+  document.getElementById('res-situation').innerHTML = r.situation;
+  document.getElementById('res-action').innerHTML = r.action;
+
+  const gapsList = document.getElementById('res-gaps');
+  gapsList.innerHTML = r.gaps.map(g => `<li>${g}</li>`).join('');
+
+  rs.scrollIntoView({ behavior: 'smooth' });
+}
+</script>
+</body>
+</html>
